@@ -18,6 +18,10 @@
       {
         "command": "jarvis.restartServer",
         "title": "Restart Jarvis"
+      },
+      {
+        "command": "jarvis.askToJarvis",
+        "title": "Ask Jarvis About Project"
       }
     ],
     "configuration": {
@@ -29,15 +33,6 @@
           "description": "OpenAI API Key"
         }
       }
-    },
-    "viewsContainers": {
-      "activitybar": [
-        {
-          "icon": "resources/jarvis.svg",
-          "id": "jarvis",
-          "title": "Jarvis"
-        }
-      ]
     }
   },
   "scripts": {
