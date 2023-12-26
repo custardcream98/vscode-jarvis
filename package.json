@@ -45,6 +45,10 @@
       {
         "command": "jarvis.askToJarvis",
         "title": "Ask Jarvis About Project"
+      },
+      {
+        "command": "jarvis.resetJarvis",
+        "title": "Reset Jarvis on Current Project"
       }
     ],
     "configuration": {

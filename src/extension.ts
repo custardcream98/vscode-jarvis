@@ -6,7 +6,6 @@ import {
 } from "./completion/completion";
 import { getFilesToIgnore } from "./data/file";
 import { getProjectFileTree } from "./data/fileTree";
-import type { AskToJarvis } from "./share/type";
 import { SidebarProvider } from "./view/sidebar";
 
 import OpenAI from "openai";
@@ -46,7 +45,7 @@ const setupProject = async (
     ? vscodeState.readmeSummary
     : await getReadmeSummery(openai, targetDirectory);
 
-  context.workspaceState.update("jarvis", {
+  await context.workspaceState.update("jarvis", {
     readmeSummary,
   });
 
@@ -56,7 +55,7 @@ const setupProject = async (
     ? vscodeState.fileTree
     : getProjectFileTree(targetDirectory, filesToIgnore);
 
-  context.workspaceState.update("jarvis", {
+  await context.workspaceState.update("jarvis", {
     fileTree,
   });
 
@@ -64,7 +63,7 @@ const setupProject = async (
     ? vscodeState.fileTreeSummary
     : await getFileTreeSummary(openai, fileTree);
 
-  context.workspaceState.update("jarvis", {
+  await context.workspaceState.update("jarvis", {
     fileTreeSummary,
   });
 
@@ -72,7 +71,7 @@ const setupProject = async (
     ? vscodeState.projectShortExplanation
     : await getProjectShortExplanation(openai, readmeSummary, fileTreeSummary.join("\n"));
 
-  context.workspaceState.update("jarvis", {
+  await context.workspaceState.update("jarvis", {
     projectShortExplanation,
   });
 
@@ -159,11 +158,17 @@ const setupJarvis = (
 };
 
 export async function activate(context: vscode.ExtensionContext) {
-  let restartServer = vscode.commands.registerCommand(EXTENSION_NAME + ".restartServer", () => {
+  const restartServer = vscode.commands.registerCommand(EXTENSION_NAME + ".restartServer", () => {
+    vscode.commands.executeCommand("workbench.action.reloadWindow");
+  });
+
+  const resetJarvis = vscode.commands.registerCommand(EXTENSION_NAME + ".resetJarvis", async () => {
+    await context.workspaceState.update("jarvis", {});
     vscode.commands.executeCommand("workbench.action.reloadWindow");
   });
 
   context.subscriptions.push(restartServer);
+  context.subscriptions.push(resetJarvis);
 
   const openAiApiKey = vscode.workspace.getConfiguration(EXTENSION_NAME).get("Open_AI_Api_Key");
 
