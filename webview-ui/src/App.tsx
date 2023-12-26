@@ -5,7 +5,7 @@ import {
   VSCodeProgressRing,
   VSCodeTextArea,
 } from "@vscode/webview-ui-toolkit/react";
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import Markdown from "react-markdown";
 
 import { vscode } from "./utilities/vscode";
@@ -13,6 +13,11 @@ import { vscode } from "./utilities/vscode";
 import "./App.css";
 import "github-markdown-css/github-markdown.css";
 import style from "./App.module.css";
+
+const updateVsCodeState = <T extends unknown | undefined>(reducer: (prevState: T) => T) => {
+  const vscodeState = vscode.getState();
+  vscode.setState(reducer(vscodeState as T));
+};
 
 const App = () => {
   const [projectData, setProjectData] = useState<{
@@ -29,9 +34,22 @@ const App = () => {
   >([]);
 
   useEffect(() => {
+    const vscodeState = vscode.getState();
+
+    if (vscodeState) {
+      setProjectData((vscodeState as any).projectData ?? null);
+      setConversations((vscodeState as any).conversations ?? []);
+
+      return;
+    }
+
     const projectSetupEventHandler = (event: MessageEvent) => {
       if (event.data.type === "onProjectSetup") {
         setProjectData(event.data.value);
+        updateVsCodeState((prevState) => ({
+          ...(prevState ?? {}),
+          projectData: event.data.value,
+        }));
       }
     };
 
@@ -60,13 +78,16 @@ const App = () => {
   useEffect(() => {
     const answerEventHandler = (event: MessageEvent) => {
       if (event.data.type === "onAnswer") {
-        setConversations((conversations) => [
-          ...conversations,
-          {
-            question: event.data.value.question,
-            answer: event.data.value.answer,
-          },
-        ]);
+        const newConversation = {
+          question: event.data.value.question,
+          answer: event.data.value.answer,
+        };
+
+        setConversations((conversations) => [...conversations, newConversation]);
+        updateVsCodeState((prevState) => ({
+          ...(prevState ?? {}),
+          conversations: [...((prevState as any)?.conversations ?? []), newConversation],
+        }));
         setIsAnsweringQuestion(false);
       }
     };
