@@ -36,6 +36,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       switch (data.type) {
         case "onQuestion": {
           if (!data.value || typeof data.value !== "string") {
+            vscode.window.showErrorMessage("Jarvis: Invalid question");
             return;
           }
 

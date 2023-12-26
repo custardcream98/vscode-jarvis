@@ -5,7 +5,7 @@ import {
   VSCodeProgressRing,
   VSCodeTextArea,
 } from "@vscode/webview-ui-toolkit/react";
-import { useEffect, useLayoutEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import Markdown from "react-markdown";
 
 import { vscode } from "./utilities/vscode";
@@ -61,6 +61,7 @@ const App = () => {
   }, []);
 
   const [isAnsweringQuestion, setIsAnsweringQuestion] = useState(false);
+  const chatFormRef = useRef<HTMLFormElement>(null);
   const questionFormSubmitHandler = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
@@ -89,6 +90,7 @@ const App = () => {
           conversations: [...((prevState as any)?.conversations ?? []), newConversation],
         }));
         setIsAnsweringQuestion(false);
+        chatFormRef.current?.reset();
       }
     };
 
@@ -156,9 +158,14 @@ const App = () => {
                 </div>
               ))}
             </div>
-            <form className={style.chatForm} onSubmit={questionFormSubmitHandler}>
-              <VSCodeTextArea className={style.chatTextArea} name='question' id='question' />
-              <VSCodeButton disabled={isAnsweringQuestion}>
+            <form ref={chatFormRef} className={style.chatForm} onSubmit={questionFormSubmitHandler}>
+              <VSCodeTextArea
+                className={style.chatTextArea}
+                name='question'
+                id='question'
+                disabled={isAnsweringQuestion}
+              />
+              <VSCodeButton type='submit' disabled={isAnsweringQuestion}>
                 {isAnsweringQuestion ? "Jarvis is Thinking..." : "Ask Jarvis"}
               </VSCodeButton>
             </form>
