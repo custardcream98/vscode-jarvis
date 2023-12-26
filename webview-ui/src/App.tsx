@@ -31,25 +31,15 @@ const App = () => {
       question: string;
       answer: string;
     }[]
-  >([]);
+  >(() => {
+    const vscodeState = vscode.getState();
+    return (vscodeState as any)?.conversations ?? [];
+  });
 
   useEffect(() => {
-    const vscodeState = vscode.getState();
-
-    if (vscodeState) {
-      setProjectData((vscodeState as any).projectData ?? null);
-      setConversations((vscodeState as any).conversations ?? []);
-
-      return;
-    }
-
     const projectSetupEventHandler = (event: MessageEvent) => {
       if (event.data.type === "onProjectSetup") {
         setProjectData(event.data.value);
-        updateVsCodeState((prevState) => ({
-          ...(prevState ?? {}),
-          projectData: event.data.value,
-        }));
       }
     };
 
@@ -100,6 +90,14 @@ const App = () => {
       window.removeEventListener("message", answerEventHandler);
     };
   }, []);
+
+  const resetChatLogHandler = () => {
+    updateVsCodeState((prevState) => ({
+      ...(prevState ?? {}),
+      conversations: [],
+    }));
+    setConversations([]);
+  };
 
   // return (
   //   <main>
@@ -169,6 +167,9 @@ const App = () => {
                 {isAnsweringQuestion ? "Jarvis is Thinking..." : "Ask Jarvis"}
               </VSCodeButton>
             </form>
+            <VSCodeButton type='button' onClick={resetChatLogHandler}>
+              Reset Chat Log
+            </VSCodeButton>
           </div>
         </>
       ) : (
