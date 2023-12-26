@@ -2,7 +2,7 @@ import fs from "fs";
 
 export const getProjectFileTree = (
   projectDirectory: string,
-  filesToIgnore: string[] = []
+  filesToIgnore: string[] = [],
 ): string => {
   const fileTree = fs
     .readdirSync(projectDirectory, { withFileTypes: true })
@@ -13,10 +13,7 @@ export const getProjectFileTree = (
         dirent.name !== "node_modules" &&
         dirent.name !== ".git"
       ) {
-        const subFileTree = getProjectFileTree(
-          `${projectDirectory}/${dirent.name}`,
-          filesToIgnore
-        );
+        const subFileTree = getProjectFileTree(`${projectDirectory}/${dirent.name}`, filesToIgnore);
 
         return subFileTree;
       } else {

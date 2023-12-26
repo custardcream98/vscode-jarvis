@@ -1,29 +1,21 @@
 import * as vscode from "vscode";
 
-export class SidebarProvider
-  implements vscode.WebviewViewProvider
-{
+export class SidebarProvider implements vscode.WebviewViewProvider {
   _view?: vscode.WebviewView;
   _doc?: vscode.TextDocument;
   _projectDescription?: string;
-  _askToJarvisHandler?: (
-    question: string
-  ) => Promise<string>;
+  _askToJarvisHandler?: (question: string) => Promise<string>;
 
   constructor(
     private readonly _extensionUri: vscode.Uri,
     projectDescription: string,
-    askToJarvisHandler: (
-      question: string
-    ) => Promise<string>
+    askToJarvisHandler: (question: string) => Promise<string>,
   ) {
     this._projectDescription = projectDescription;
     this._askToJarvisHandler = askToJarvisHandler;
   }
 
-  public resolveWebviewView(
-    webviewView: vscode.WebviewView
-  ) {
+  public resolveWebviewView(webviewView: vscode.WebviewView) {
     this._view = webviewView;
 
     webviewView.webview.options = {
@@ -33,37 +25,27 @@ export class SidebarProvider
       localResourceRoots: [this._extensionUri],
     };
 
-    webviewView.webview.html = this._getHtmlForWebview(
-      webviewView.webview
-    );
+    webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
 
     // Listen for messages from the Sidebar component and execute action
-    webviewView.webview.onDidReceiveMessage(
-      async (data) => {
-        switch (data.type) {
-          case "onQuestion": {
-            if (
-              !data.value ||
-              !this._askToJarvisHandler ||
-              typeof data.value !== "string"
-            ) {
-              return;
-            }
-
-            const answer = await this._askToJarvisHandler?.(
-              data.value
-            );
-
-            webviewView.webview.postMessage({
-              type: "onAnswer",
-              value: answer,
-            });
-
-            break;
+    webviewView.webview.onDidReceiveMessage(async (data) => {
+      switch (data.type) {
+        case "onQuestion": {
+          if (!data.value || !this._askToJarvisHandler || typeof data.value !== "string") {
+            return;
           }
+
+          const answer = await this._askToJarvisHandler?.(data.value);
+
+          webviewView.webview.postMessage({
+            type: "onAnswer",
+            value: answer,
+          });
+
+          break;
         }
       }
-    );
+    });
   }
 
   public revive(panel: vscode.WebviewView) {
@@ -154,12 +136,9 @@ window.addEventListener('message', event => {
 
 function getNonce() {
   let text = "";
-  const possible =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  const possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
   for (let i = 0; i < 32; i++) {
-    text += possible.charAt(
-      Math.floor(Math.random() * possible.length)
-    );
+    text += possible.charAt(Math.floor(Math.random() * possible.length));
   }
   return text;
 }
