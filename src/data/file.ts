@@ -1,4 +1,5 @@
 import fs from "fs";
+import path from "path";
 
 export const getFileContent = (filePath: string) => {
   try {
@@ -8,4 +9,12 @@ export const getFileContent = (filePath: string) => {
   } catch (err) {
     return "";
   }
+};
+
+export const getFilesToIgnore = (targetDirectory: string) => {
+  const gitignore = getFileContent(path.resolve(targetDirectory, "./.gitignore"));
+
+  const filesToIgnore = gitignore.split("\n");
+
+  return filesToIgnore;
 };

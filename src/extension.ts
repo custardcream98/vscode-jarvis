@@ -1,81 +1,69 @@
-import { getChatCompletion, getChatCompletionWithFunction } from "./completion/chat";
 import {
-  getAnswerQuestionPrompt,
-  getFileTreeSummeryPrompt,
-  getProjectShortExplanationPrompt,
-  getReadmeSummeryPrompt,
-} from "./completion/prompt";
-import { getFileContent } from "./data/file";
+  askToJarvis,
+  getFileTreeSummary,
+  getProjectShortExplanation,
+  getReadmeSummery,
+} from "./completion/completion";
+import { getFilesToIgnore } from "./data/file";
 import { getProjectFileTree } from "./data/fileTree";
+import type { AskToJarvis } from "./share/type";
 import { SidebarProvider } from "./view/sidebar";
 
 import OpenAI from "openai";
-import path from "path";
 import * as vscode from "vscode";
 
 const EXTENSION_NAME = "jarvis";
 
-const getReadmeSummery = async (openai: OpenAI, targetDirectory: string) => {
-  const readme = getFileContent(path.resolve(targetDirectory, "./README.md"));
-
-  if (!readme) {
-    return "";
-  }
-
-  const readmeSummaryPrompt = getReadmeSummeryPrompt({
-    readme,
-  });
-
-  const { summary: readmeSummary } = await getChatCompletion<{
-    summary: string;
-  }>(openai, readmeSummaryPrompt);
-
-  return readmeSummary;
-};
-
-const getFilesToIgnore = (targetDirectory: string) => {
-  const gitignore = getFileContent(path.resolve(targetDirectory, "./.gitignore"));
-
-  const filesToIgnore = gitignore.split("\n");
-
-  return filesToIgnore;
-};
-
-const getFileTreeSummary = async (openai: OpenAI, fileTree: string) => {
-  const fileTreeSummaryPrompt = getFileTreeSummeryPrompt({
-    fileTree,
-  });
-
-  const { fileDirectories: fileTreeSummary } = await getChatCompletion<{
-    fileDirectories: string[];
-  }>(openai, fileTreeSummaryPrompt);
-
-  return fileTreeSummary;
-};
-
-const getProjectShortExplanation = async (
+const setupSidebar = (
+  context: vscode.ExtensionContext,
   openai: OpenAI,
-  readmeSummary: string,
-  fileTreeSummary: string,
+  targetDirectory: string,
 ) => {
-  const projectExplanationPrompt = getProjectShortExplanationPrompt({
-    summarizedFileTree: fileTreeSummary,
-    summarizedReadme: readmeSummary,
-  });
+  const sidebarProvider = new SidebarProvider(context.extensionUri, openai, targetDirectory);
 
-  const { explanation: projectExplanation } = await getChatCompletion<{
-    explanation: string;
-  }>(openai, projectExplanationPrompt);
+  context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider("jarvis-sidebar", sidebarProvider),
+  );
 
-  return projectExplanation;
+  return sidebarProvider;
 };
 
-const setupJarvis = async (
+const setupProject = async (openai: OpenAI, targetDirectory: string) => {
+  const readmeSummary = await getReadmeSummery(openai, targetDirectory);
+
+  const filesToIgnore = getFilesToIgnore(targetDirectory);
+
+  const fileTree = getProjectFileTree(targetDirectory, filesToIgnore);
+
+  const fileTreeSummary = await getFileTreeSummary(openai, fileTree);
+
+  const projectShortExplanation = await getProjectShortExplanation(
+    openai,
+    readmeSummary,
+    fileTreeSummary.join("\n"),
+  );
+
+  return {
+    fileTree,
+    fileTreeSummary,
+    projectShortExplanation,
+  };
+};
+
+const setupJarvis = (
   context: vscode.ExtensionContext,
   currentWorkspaceRoot: string,
   openAiApiKey: string,
 ) => {
-  await vscode.window.withProgress(
+  const openai = new OpenAI({
+    apiKey: openAiApiKey,
+  });
+
+  const TARGET_DIRECTORY = currentWorkspaceRoot;
+
+  const sidebarProvider = setupSidebar(context, openai, TARGET_DIRECTORY);
+
+  vscode.window.withProgress(
     {
       cancellable: false,
       location: vscode.ProgressLocation.Notification,
@@ -84,32 +72,14 @@ const setupJarvis = async (
     async (progress) => {
       progress.report({ increment: 0 });
 
-      const openai = new OpenAI({
-        apiKey: openAiApiKey,
-      });
-
-      const TARGET_DIRECTORY = currentWorkspaceRoot;
-
       progress.report({
         increment: 10,
         message: "Jarvis: Reading Project...",
       });
-      const readmeSummary = await getReadmeSummery(openai, TARGET_DIRECTORY);
 
-      const filesToIgnore = getFilesToIgnore(TARGET_DIRECTORY);
-
-      const fileTree = getProjectFileTree(TARGET_DIRECTORY, filesToIgnore);
-
-      progress.report({
-        increment: 70,
-        message: "Jarvis: Reading Project...",
-      });
-      const fileTreeSummary = await getFileTreeSummary(openai, fileTree);
-
-      const projectShortExplanation = await getProjectShortExplanation(
+      const { fileTree, fileTreeSummary, projectShortExplanation } = await setupProject(
         openai,
-        readmeSummary,
-        fileTreeSummary.join("\n"),
+        TARGET_DIRECTORY,
       );
 
       vscode.window.showInformationMessage(
@@ -117,44 +87,13 @@ const setupJarvis = async (
           projectShortExplanation,
       );
 
-      progress.report({ increment: 100 });
-
-      const askToJarvis = async (question: string) => {
-        const answer = await vscode.window.withProgress(
-          {
-            cancellable: false,
-            location: vscode.ProgressLocation.Notification,
-            title: "Jarvis: Thinking...",
-          },
-          async (progress) => {
-            progress.report({ increment: 0 });
-
-            const questionPrompt = getAnswerQuestionPrompt({
-              fileTree,
-              projectShortExplanation,
-              question,
-            });
-
-            const { answer } = await getChatCompletionWithFunction<{
-              answer: string;
-            }>(openai, questionPrompt, TARGET_DIRECTORY);
-
-            return answer;
-          },
-        );
-
-        return answer;
-      };
-
-      const sidebarProvider = new SidebarProvider(
-        context.extensionUri,
+      sidebarProvider.setupProject({
+        fileTree,
+        fileTreeSummary,
         projectShortExplanation,
-        askToJarvis,
-      );
+      });
 
-      context.subscriptions.push(
-        vscode.window.registerWebviewViewProvider("jarvis-sidebar", sidebarProvider),
-      );
+      progress.report({ increment: 100 });
 
       let askToJarvisCommand = vscode.commands.registerCommand(
         EXTENSION_NAME + ".askToJarvis",
@@ -169,7 +108,11 @@ const setupJarvis = async (
             return;
           }
 
-          const answer = await askToJarvis(question);
+          const answer = await askToJarvis(openai, TARGET_DIRECTORY, {
+            fileTree,
+            projectShortExplanation,
+            question,
+          });
 
           vscode.window.showInformationMessage("Jarvis: " + answer);
         },
@@ -203,7 +146,7 @@ export async function activate(context: vscode.ExtensionContext) {
     return;
   }
 
-  await setupJarvis(context, currentWorkspaceRoot, openAiApiKey);
+  setupJarvis(context, currentWorkspaceRoot, openAiApiKey);
 }
 
 export function deactivate() {}

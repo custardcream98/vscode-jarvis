@@ -1,19 +1,19 @@
+import { askToJarvis } from "../completion/completion";
+
+import type OpenAI from "openai";
 import * as vscode from "vscode";
 
 export class SidebarProvider implements vscode.WebviewViewProvider {
   _view?: vscode.WebviewView;
-  _doc?: vscode.TextDocument;
-  _projectDescription?: string;
-  _askToJarvisHandler?: (question: string) => Promise<string>;
+  _fileTree: string = "";
+  _fileTreeSummary: string[] = [];
+  _projectShortExplanation: string = "";
 
   constructor(
     private readonly _extensionUri: vscode.Uri,
-    projectDescription: string,
-    askToJarvisHandler: (question: string) => Promise<string>,
-  ) {
-    this._projectDescription = projectDescription;
-    this._askToJarvisHandler = askToJarvisHandler;
-  }
+    private readonly _openai: OpenAI,
+    private readonly _targetDirectory: string,
+  ) {}
 
   public resolveWebviewView(webviewView: vscode.WebviewView) {
     this._view = webviewView;
@@ -22,7 +22,11 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       // Allow scripts in the webview
       enableScripts: true,
 
-      localResourceRoots: [this._extensionUri],
+      localResourceRoots: [
+        this._extensionUri.with({ fragment: "out" }),
+        this._extensionUri.with({ path: "webview-ui/build" }),
+        this._extensionUri,
+      ],
     };
 
     webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
@@ -31,15 +35,22 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     webviewView.webview.onDidReceiveMessage(async (data) => {
       switch (data.type) {
         case "onQuestion": {
-          if (!data.value || !this._askToJarvisHandler || typeof data.value !== "string") {
+          if (!data.value || typeof data.value !== "string") {
             return;
           }
 
-          const answer = await this._askToJarvisHandler?.(data.value);
+          const answer = await askToJarvis(this._openai, this._targetDirectory, {
+            fileTree: this._fileTree,
+            projectShortExplanation: this._projectShortExplanation,
+            question: data.value,
+          });
 
-          webviewView.webview.postMessage({
+          this.postMessage({
             type: "onAnswer",
-            value: answer,
+            value: {
+              answer,
+              question: data.value,
+            },
           });
 
           break;
@@ -53,85 +64,63 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   }
 
   private _getHtmlForWebview(webview: vscode.Webview) {
-    // const styleResetUri = webview.asWebviewUri(
-    //     vscode.Uri.joinPath(this._extensionUri, "media", "reset.css")
-    // );
-    // const styleVSCodeUri = webview.asWebviewUri(
-    //     vscode.Uri.joinPath(this._extensionUri, "media", "vscode.css")
-    // );
-    // const scriptUri = webview.asWebviewUri(
-    //     vscode.Uri.joinPath(this._extensionUri, "out", "compiled/sidebar.js")
-    // );
-    // const styleMainUri = webview.asWebviewUri(
-    //     vscode.Uri.joinPath(this._extensionUri, "out", "compiled/sidebar.css")
-    // );
+    const scriptUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(this._extensionUri, ...["webview-ui", "build", "assets", "index.js"]),
+    );
+    const stylesUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(this._extensionUri, ...["webview-ui", "build", "assets", "index.css"]),
+    );
 
     // Use a nonce to only allow a specific script to be run.
     const nonce = getNonce();
 
-    return `<!DOCTYPE html>
-			<html lang="en">
-			<head>
-				<meta charset="UTF-8">
-				<!--
-					Use a content security policy to only allow loading images from https or from our extension directory,
-					and only allow scripts that have a specific nonce.
-        -->
-        <meta http-equiv="Content-Security-Policy" content="img-src https: data:; style-src 'unsafe-inline' ${webview.cspSource}; script-src 'nonce-${nonce}';">
-				<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-                <script nonce="${nonce}">
-                    const tsvscode = acquireVsCodeApi();
-                </script>
-
-			</head>
-            <body>
-      <h1>Jarvis</h1>
-      <p>${this._projectDescription}</p>
-      <p>Ask a question</p>
-
-      <form id="questionForm">
-      <textarea id="question" type="text" placeholder="What is the purpose of this project?"></textarea>
-      <button id="ask">Ask</button>
-      </form>
-      
-      <ol id="answerList" style="margin-top:20px;"></ol>
-
-<script nonce="${nonce}">
-const formElement = document.getElementById('questionForm');
-
-formElement.addEventListener('submit', (e) => {
-  e.preventDefault();
-
-  const question = document.getElementById('question').value;
-
-  tsvscode.postMessage({
-    type: 'onQuestion',
-    value: question
-  });
-});
-</script>
-<script nonce="${nonce}">
-window.addEventListener('message', event => {
-  const message = event.data;
-
-  switch (message.type) {
-    case 'onAnswer': {
-      const answerListElement = document.getElementById('answerList');
-
-      const answerElement = document.createElement('li');
-      answerElement.innerText = message.value;
-
-      answerListElement.appendChild(answerElement);
-
-      break;
-    }
+    return `
+     <!DOCTYPE html>
+      <html lang="en">
+        <head>
+          <meta charset="UTF-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+          <meta
+            http-equiv="Content-Security-Policy"
+            content="default-src 'none'; script-src 'nonce-${nonce}'; style-src ${webview.cspSource};"
+          />
+          <link rel="stylesheet" type="text/css" href="${stylesUri}">
+          <title>Jarvis</title>
+        </head>
+        <body>
+          <div id="root"></div>
+          <script type="module" nonce="${nonce}" src="${scriptUri}"></script>
+        </body>
+      </html>
+    `;
   }
-});
-</script>
-			</body>
-			</html>`;
+
+  public postMessage(message: unknown) {
+    this._view?.webview.postMessage(message);
   }
+
+  public setupProject = ({
+    fileTree,
+    fileTreeSummary,
+    projectShortExplanation,
+  }: {
+    fileTree: string;
+    fileTreeSummary: string[];
+    projectShortExplanation: string;
+  }) => {
+    this._fileTree = fileTree;
+    this._fileTreeSummary = fileTreeSummary;
+    this._projectShortExplanation = projectShortExplanation;
+
+    this._view?.webview.postMessage({
+      type: "onProjectSetup",
+      value: {
+        fileTree,
+        fileTreeSummary,
+        projectShortExplanation,
+      },
+    });
+  };
 }
 
 function getNonce() {

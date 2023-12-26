@@ -1,0 +1,59 @@
+.loadingWrapper {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  flex-grow: 1;
+  width: 100%;
+  gap: 10px;
+}
+
+.chatWrapper {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  flex-grow: 1;
+  width: 100%;
+}
+
+.chatList {
+  flex-grow: 1;
+  width: 100%;
+}
+
+.chatListItem + .chatListItem {
+  margin-top: 10px;
+}
+
+.chatBox {
+  width: fit-content;
+  max-width: 80%;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.chatBox + .chatBox {
+  margin-top: 10px;
+}
+
+.botChat {
+  border: 1px solid #ccc;
+}
+
+.userChat {
+  border: 1px solid #ad9e00;
+  margin-left: auto;
+}
+
+.chatForm {
+  height: 100px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.chatTextArea {
+  width: 100%;
+  resize: none;
+}

@@ -1,0 +1,13 @@
+main {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  height: 100%;
+  min-height: 100vh;
+}
+
+.markdown-body {
+  padding: 10px 15px;
+  width: fit-content;
+}

@@ -5,26 +5,15 @@
     "ecmaVersion": 6,
     "sourceType": "module"
   },
-  "extends": ["import", "prettier"],
+  "extends": ["prettier"],
   "plugins": [
     "@typescript-eslint",
     "react",
     "react-hooks",
     "sort-keys-fix",
     "simple-import-sort",
-    "import",
     "prettier"
   ],
-  "settings": {
-    "import/parsers": {
-      "@typescript-eslint/parser": [".ts", ".tsx"]
-    },
-    "import/resolver": {
-      "typescript": {
-        "project": "./tsconfig.json"
-      }
-    }
-  },
   "rules": {
     "@typescript-eslint/naming-convention": [
       "warn",
@@ -52,5 +41,5 @@
     ],
     "sort-keys-fix/sort-keys-fix": "warn"
   },
-  "ignorePatterns": ["out", "dist", "**/*.d.ts"]
+  "ignorePatterns": ["out", "dist", "**/*.d.ts", "webview-ui/**"]
 }
