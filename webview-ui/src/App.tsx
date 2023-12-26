@@ -37,6 +37,10 @@ const App = () => {
   });
 
   useEffect(() => {
+    vscode.postMessage({
+      type: "onWebviewLoad",
+    });
+
     const projectSetupEventHandler = (event: MessageEvent) => {
       if (event.data.type === "onProjectSetup") {
         setProjectData(event.data.value);

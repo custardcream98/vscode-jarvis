@@ -8,6 +8,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   _fileTree: string = "";
   _fileTreeSummary: string[] = [];
   _projectShortExplanation: string = "";
+  _isInitialized: boolean = false;
 
   constructor(
     private readonly _extensionUri: vscode.Uri,
@@ -55,6 +56,20 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           });
 
           break;
+        }
+        case "onWebviewLoad": {
+          if (!this._isInitialized) {
+            break;
+          }
+
+          this._view?.webview.postMessage({
+            type: "onProjectSetup",
+            value: {
+              fileTree: this._fileTree,
+              fileTreeSummary: this._fileTreeSummary,
+              projectShortExplanation: this._projectShortExplanation,
+            },
+          });
         }
       }
     });
@@ -113,6 +128,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     this._fileTreeSummary = fileTreeSummary;
     this._projectShortExplanation = projectShortExplanation;
 
+    this._isInitialized = true;
     this._view?.webview.postMessage({
       type: "onProjectSetup",
       value: {
