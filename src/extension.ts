@@ -39,41 +39,31 @@ const setupProject = async (
   openai: OpenAI,
   targetDirectory: string,
 ): Promise<ProjectState> => {
-  const vscodeState = context.workspaceState.get("jarvis") as Partial<ProjectState>;
-
-  const readmeSummary = vscodeState.readmeSummary
-    ? vscodeState.readmeSummary
+  const readmeSummary = context.workspaceState.get("jarvis-readmeSummary")
+    ? (context.workspaceState.get("jarvis-readmeSummary") as string)
     : await getReadmeSummery(openai, targetDirectory);
 
-  await context.workspaceState.update("jarvis", {
-    readmeSummary,
-  });
+  await context.workspaceState.update("jarvis-readmeSummary", readmeSummary);
 
   const filesToIgnore = getFilesToIgnore(targetDirectory);
 
-  const fileTree = vscodeState.fileTree
-    ? vscodeState.fileTree
+  const fileTree = context.workspaceState.get("jarvis-fileTree")
+    ? (context.workspaceState.get("jarvis-fileTree") as string)
     : getProjectFileTree(targetDirectory, filesToIgnore);
 
-  await context.workspaceState.update("jarvis", {
-    fileTree,
-  });
+  await context.workspaceState.update("jarvis-fileTree", fileTree);
 
-  const fileTreeSummary = vscodeState.fileTreeSummary
-    ? vscodeState.fileTreeSummary
+  const fileTreeSummary = context.workspaceState.get("jarvis-fileTreeSummary")
+    ? (context.workspaceState.get("jarvis-fileTreeSummary") as string[])
     : await getFileTreeSummary(openai, fileTree);
 
-  await context.workspaceState.update("jarvis", {
-    fileTreeSummary,
-  });
+  await context.workspaceState.update("jarvis-fileTreeSummary", fileTreeSummary);
 
-  const projectShortExplanation = vscodeState.projectShortExplanation
-    ? vscodeState.projectShortExplanation
+  const projectShortExplanation = context.workspaceState.get("jarvis-projectShortExplanation")
+    ? (context.workspaceState.get("jarvis-projectShortExplanation") as string)
     : await getProjectShortExplanation(openai, readmeSummary, fileTreeSummary.join("\n"));
 
-  await context.workspaceState.update("jarvis", {
-    projectShortExplanation,
-  });
+  await context.workspaceState.update("jarvis-projectShortExplanation", projectShortExplanation);
 
   return {
     fileTree,
@@ -163,8 +153,12 @@ export async function activate(context: vscode.ExtensionContext) {
   });
 
   const resetJarvis = vscode.commands.registerCommand(EXTENSION_NAME + ".resetJarvis", async () => {
-    await context.workspaceState.update("jarvis", {});
-    vscode.commands.executeCommand("workbench.action.reloadWindow");
+    await context.workspaceState.update("jarvis-readmeSummary", undefined);
+    await context.workspaceState.update("jarvis-fileTree", undefined);
+    await context.workspaceState.update("jarvis-fileTreeSummary", undefined);
+    await context.workspaceState.update("jarvis-projectShortExplanation", undefined);
+
+    await vscode.commands.executeCommand("workbench.action.reloadWindow");
   });
 
   context.subscriptions.push(restartServer);
