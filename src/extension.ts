@@ -28,25 +28,59 @@ const setupSidebar = (
   return sidebarProvider;
 };
 
-const setupProject = async (openai: OpenAI, targetDirectory: string) => {
-  const readmeSummary = await getReadmeSummery(openai, targetDirectory);
+type ProjectState = {
+  readmeSummary: string;
+  fileTree: string;
+  fileTreeSummary: string[];
+  projectShortExplanation: string;
+};
+
+const setupProject = async (
+  context: vscode.ExtensionContext,
+  openai: OpenAI,
+  targetDirectory: string,
+): Promise<ProjectState> => {
+  const vscodeState = context.workspaceState.get("jarvis") as Partial<ProjectState>;
+
+  const readmeSummary = vscodeState.readmeSummary
+    ? vscodeState.readmeSummary
+    : await getReadmeSummery(openai, targetDirectory);
+
+  context.workspaceState.update("jarvis", {
+    readmeSummary,
+  });
 
   const filesToIgnore = getFilesToIgnore(targetDirectory);
 
-  const fileTree = getProjectFileTree(targetDirectory, filesToIgnore);
+  const fileTree = vscodeState.fileTree
+    ? vscodeState.fileTree
+    : getProjectFileTree(targetDirectory, filesToIgnore);
 
-  const fileTreeSummary = await getFileTreeSummary(openai, fileTree);
+  context.workspaceState.update("jarvis", {
+    fileTree,
+  });
 
-  const projectShortExplanation = await getProjectShortExplanation(
-    openai,
-    readmeSummary,
-    fileTreeSummary.join("\n"),
-  );
+  const fileTreeSummary = vscodeState.fileTreeSummary
+    ? vscodeState.fileTreeSummary
+    : await getFileTreeSummary(openai, fileTree);
+
+  context.workspaceState.update("jarvis", {
+    fileTreeSummary,
+  });
+
+  const projectShortExplanation = vscodeState.projectShortExplanation
+    ? vscodeState.projectShortExplanation
+    : await getProjectShortExplanation(openai, readmeSummary, fileTreeSummary.join("\n"));
+
+  context.workspaceState.update("jarvis", {
+    projectShortExplanation,
+  });
 
   return {
     fileTree,
     fileTreeSummary,
     projectShortExplanation,
+    readmeSummary,
   };
 };
 
@@ -78,6 +112,7 @@ const setupJarvis = (
       });
 
       const { fileTree, fileTreeSummary, projectShortExplanation } = await setupProject(
+        context,
         openai,
         TARGET_DIRECTORY,
       );
