@@ -7,13 +7,15 @@ import {
 } from "@vscode/webview-ui-toolkit/react";
 import { useEffect, useRef, useState } from "react";
 import Markdown from "react-markdown";
+import type OpenAI from "openai";
+
+import "github-markdown-css/github-markdown.css";
 
 import { vscode } from "./utilities/vscode";
+import { type ProjectSetupData, useMessageEvent } from "./hooks/useMessageEvent";
 
 import "./App.css";
-import "github-markdown-css/github-markdown.css";
 import style from "./App.module.css";
-import type OpenAI from "openai";
 
 type Conversation = OpenAI.Chat.Completions.ChatCompletionMessageParam;
 
@@ -23,33 +25,20 @@ const updateVsCodeState = <T extends unknown | undefined>(reducer: (prevState: T
 };
 
 const App = () => {
-  const [projectData, setProjectData] = useState<{
-    fileTree: string;
-    fileTreeSummary: string;
-    projectShortExplanation: string;
-  } | null>(null);
+  const [projectData, setProjectData] = useState<ProjectSetupData | null>(null);
 
   const [conversations, setConversations] = useState<Conversation[]>(() => {
     const vscodeState = vscode.getState();
     return (vscodeState as any)?.conversations ?? [];
   });
 
+  useMessageEvent("onProjectSetup", (payload) => {
+    setProjectData(payload);
+  });
   useEffect(() => {
     vscode.postMessage({
       type: "onWebviewLoad",
     });
-
-    const projectSetupEventHandler = (event: MessageEvent) => {
-      if (event.data.type === "onProjectSetup") {
-        setProjectData(event.data.value);
-      }
-    };
-
-    window.addEventListener("message", projectSetupEventHandler);
-
-    return () => {
-      window.removeEventListener("message", projectSetupEventHandler);
-    };
   }, []);
 
   const [isAnsweringQuestion, setIsAnsweringQuestion] = useState(false);
@@ -71,44 +60,21 @@ const App = () => {
     setIsAnsweringQuestion(true);
   };
 
-  /** error handling */
-  useEffect(() => {
-    const errorEventHandler = (event: MessageEvent) => {
-      if (event.data.type === "onError") {
-        console.error(event.data.value.error);
-        setIsAnsweringQuestion(false);
-        setErrorMessage(event.data.value.error);
-      }
-    };
+  useMessageEvent("onError", ({ error }) => {
+    console.error(error);
+    setIsAnsweringQuestion(false);
+    setErrorMessage(error);
+  });
 
-    window.addEventListener("message", errorEventHandler);
-
-    return () => {
-      window.removeEventListener("message", errorEventHandler);
-    };
-  }, []);
-
-  useEffect(() => {
-    const answerEventHandler = (event: MessageEvent) => {
-      if (event.data.type === "onAnswer") {
-        const conversations = event.data.value.conversations as Conversation[];
-
-        setConversations(conversations);
-        updateVsCodeState((prevState) => ({
-          ...(prevState ?? {}),
-          conversations: conversations,
-        }));
-        setIsAnsweringQuestion(false);
-        chatFormRef.current?.reset();
-      }
-    };
-
-    window.addEventListener("message", answerEventHandler);
-
-    return () => {
-      window.removeEventListener("message", answerEventHandler);
-    };
-  }, []);
+  useMessageEvent("onAnswer", ({ conversations }) => {
+    setConversations(conversations);
+    updateVsCodeState((prevState) => ({
+      ...(prevState ?? {}),
+      conversations: conversations,
+    }));
+    setIsAnsweringQuestion(false);
+    chatFormRef.current?.reset();
+  });
 
   const resetChatLogHandler = () => {
     updateVsCodeState((prevState) => ({
