@@ -1,3 +1,13 @@
+.projectShortExplanationWrapper {
+  position: sticky;
+  top: 0;
+  margin-bottom: 10px;
+  width: 100%;
+  padding: 10px 15px;
+
+  background-color: rgb(31, 31, 31);
+}
+
 .loadingWrapper {
   display: flex;
   flex-direction: column;
@@ -22,6 +32,7 @@
   width: 100%;
   overflow-y: auto;
   min-height: 0;
+  padding: 0 15px;
 }
 
 .chatListItem + .chatListItem {
@@ -30,7 +41,7 @@
 
 .chatBox {
   width: fit-content;
-  max-width: 80%;
+  max-width: 90%;
   border-radius: 10px;
   overflow: auto;
 }
@@ -48,11 +59,31 @@
   margin-left: auto;
 }
 
+.chatFormWrapper {
+  position: sticky;
+  bottom: 0;
+
+  margin-top: 10px;
+  padding: 10px 15px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  height: 150px;
+  width: 100%;
+
+  background-color: rgb(31, 31, 31);
+}
+
+.textareaWrapper {
+  flex-grow: 1;
+  width: 100%;
+}
 .chatForm {
-  height: 100px;
   width: 100%;
   display: flex;
   flex-direction: column;
+  resize: none;
 }
 
 .chatTextArea {
@@ -64,4 +95,8 @@
   color: red;
   font-size: 12px;
   margin-top: 5px;
+}
+
+.resetButton {
+  width: 100%;
 }

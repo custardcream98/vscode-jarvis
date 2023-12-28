@@ -14,8 +14,11 @@ import "github-markdown-css/github-markdown.css";
 import { vscode } from "./utilities/vscode";
 import { type ProjectSetupData, useMessageEvent } from "./hooks/useMessageEvent";
 
+import "./reset.css";
 import "./App.css";
 import style from "./App.module.css";
+
+// const isDev = true;
 
 type Conversation = OpenAI.Chat.Completions.ChatCompletionMessageParam;
 
@@ -84,50 +87,127 @@ const App = () => {
     setConversations([]);
   };
 
-  // return (
-  //   <main>
-  //     <div>{"projectData.projectShortExplanation"}</div>
-  //     <VSCodeDivider />
-  //     <div className={style.chatWrapper}>
-  //       <div className={style.chatList}>
-  //         {[
-  //           {
-  //             question: "What is the project about?",
-  //             answer: "This is a project that is about...",
-  //           },
-  //           {
-  //             question: "What is the project about?",
-  //             answer: "This is a project that is about...",
-  //           },
-  //           {
-  //             question: "What is the project about?",
-  //             answer: "This is a project that is about...",
-  //           },
-  //         ].map((conversation, index) => (
-  //           <div key={index} className={style.chatListItem}>
-  //             <div className={cn(style.userChat, style.chatBox)}>
-  //               <Markdown className='markdown-body'>{conversation.question}</Markdown>
+  const [devConversations, setDevConversations] = useState<
+    {
+      role: "user" | "assistant";
+      content: string;
+    }[]
+  >(
+    new Array(10)
+      .fill([
+        { role: "user", content: "This is a test question." },
+        { role: "assistant", content: "This is a test answer." },
+      ])
+      .flat(),
+  );
+  const devQuestionFormSubmitHandler = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const formData = new FormData(event.currentTarget);
+
+    const question = formData.get("question") as string;
+
+    setDevConversations((prevConversations) => [
+      ...prevConversations,
+      {
+        role: "user",
+        content: question,
+      },
+    ]);
+    setIsAnsweringQuestion(true);
+
+    setTimeout(() => {
+      setDevConversations((prevConversations) => [
+        ...prevConversations,
+        {
+          role: "assistant",
+          content: "This is a test answer.",
+        },
+      ]);
+      setIsAnsweringQuestion(false);
+    }, 1000);
+  };
+
+  // if (isDev) {
+  //   return (
+  //     <main>
+  //       {projectData ? (
+  //         <>
+  //           <div className={style.projectShortExplanationWrapper}>
+  //             <div>{projectData.projectShortExplanation}</div>
+  //             <VSCodeDivider />
+  //           </div>
+  //           <div className={style.chatWrapper}>
+  //             <div className={style.chatList}>
+  //               <div className={style.chatListItem}>
+  //                 {devConversations
+  //                   .filter((conversation) => ["assistant", "user"].includes(conversation.role))
+  //                   .map((conversation, index) =>
+  //                     conversation.role === "user" ? (
+  //                       <div key={index} className={cn(style.userChat, style.chatBox)}>
+  //                         <Markdown className='markdown-body'>{conversation.content}</Markdown>
+  //                       </div>
+  //                     ) : (
+  //                       <div key={index} className={cn(style.botChat, style.chatBox)}>
+  //                         <Markdown className='markdown-body'>{conversation.content}</Markdown>
+  //                       </div>
+  //                     ),
+  //                   )}
+  //               </div>
+  //               {isAnsweringQuestion && (
+  //                 <div className={style.loadingWrapper}>
+  //                   <div>Jarvis is Thinking...</div>
+  //                   <VSCodeProgressRing />
+  //                 </div>
+  //               )}
+  //               {!!errorMessage && <div className={style.errorMessage}>{errorMessage}</div>}
   //             </div>
-  //             <div className={cn(style.botChat, style.chatBox)}>
-  //               <Markdown className='markdown-body'>{conversation.answer}</Markdown>
+  //             <div className={style.chatFormWrapper}>
+  //               <form
+  //                 ref={chatFormRef}
+  //                 className={style.chatForm}
+  //                 onSubmit={devQuestionFormSubmitHandler}
+  //               >
+  //                 <div className={style.textareaWrapper}>
+  //                   <VSCodeTextArea
+  //                     className={style.chatTextArea}
+  //                     name='question'
+  //                     id='question'
+  //                     disabled={isAnsweringQuestion}
+  //                   />
+  //                 </div>
+  //                 <VSCodeButton type='submit' disabled={isAnsweringQuestion}>
+  //                   {isAnsweringQuestion ? "Jarvis is Thinking..." : "Ask Jarvis"}
+  //                 </VSCodeButton>
+  //               </form>
+  //               <VSCodeButton
+  //                 className={style.resetButton}
+  //                 type='button'
+  //                 onClick={resetChatLogHandler}
+  //               >
+  //                 Reset Chat Log
+  //               </VSCodeButton>
   //             </div>
   //           </div>
-  //         ))}
-  //       </div>
-  //       <form className={style.chatForm} onSubmit={questionFormSubmitHandler}>
-  //         <VSCodeTextArea className={style.chatTextArea} name='question' id='question' />
-  //         <VSCodeButton disabled={isAnsweringQuestion}>Jarvis is thinking...</VSCodeButton>
-  //       </form>
-  //     </div>
-  //   </main>
-  // );
+  //         </>
+  //       ) : (
+  //         <div className={style.loadingWrapper}>
+  //           <div>Jarvis is analyzing project...</div>
+  //           <VSCodeProgressRing />
+  //         </div>
+  //       )}
+  //     </main>
+  //   );
+  // }
 
   return (
     <main>
       {projectData ? (
         <>
-          <div>{projectData.projectShortExplanation}</div>
-          <VSCodeDivider />
+          <div className={style.projectShortExplanationWrapper}>
+            <div>{projectData.projectShortExplanation}</div>
+            <VSCodeDivider />
+          </div>
           <div className={style.chatWrapper}>
             <div className={style.chatList}>
               <div className={style.chatListItem}>
@@ -157,20 +237,32 @@ const App = () => {
               )}
               {!!errorMessage && <div className={style.errorMessage}>{errorMessage}</div>}
             </div>
-            <form ref={chatFormRef} className={style.chatForm} onSubmit={questionFormSubmitHandler}>
-              <VSCodeTextArea
-                className={style.chatTextArea}
-                name='question'
-                id='question'
-                disabled={isAnsweringQuestion}
-              />
-              <VSCodeButton type='submit' disabled={isAnsweringQuestion}>
-                {isAnsweringQuestion ? "Jarvis is Thinking..." : "Ask Jarvis"}
+            <div className={style.chatFormWrapper}>
+              <form
+                ref={chatFormRef}
+                className={style.chatForm}
+                onSubmit={questionFormSubmitHandler}
+              >
+                <div className={style.textareaWrapper}>
+                  <VSCodeTextArea
+                    className={style.chatTextArea}
+                    name='question'
+                    id='question'
+                    disabled={isAnsweringQuestion}
+                  />
+                </div>
+                <VSCodeButton type='submit' disabled={isAnsweringQuestion}>
+                  {isAnsweringQuestion ? "Jarvis is Thinking..." : "Ask Jarvis"}
+                </VSCodeButton>
+              </form>
+              <VSCodeButton
+                className={style.resetButton}
+                type='button'
+                onClick={resetChatLogHandler}
+              >
+                Reset Chat Log
               </VSCodeButton>
-            </form>
-            <VSCodeButton type='button' onClick={resetChatLogHandler}>
-              Reset Chat Log
-            </VSCodeButton>
+            </div>
           </div>
         </>
       ) : (

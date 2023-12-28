@@ -11,6 +11,8 @@ import { SidebarProvider } from "./view/sidebar";
 import OpenAI from "openai";
 import * as vscode from "vscode";
 
+// const isDev = true;
+
 const EXTENSION_NAME = "jarvis";
 
 const setupSidebar = (
@@ -39,6 +41,15 @@ const setupProject = async (
   openai: OpenAI,
   targetDirectory: string,
 ): Promise<ProjectState> => {
+  // if (isDev) {
+  //   return {
+  //     fileTree: "",
+  //     fileTreeSummary: [],
+  //     projectShortExplanation: "This is a test explanation.",
+  //     readmeSummary: "",
+  //   };
+  // }
+
   const readmeSummary = context.workspaceState.get("jarvis-readmeSummary")
     ? (context.workspaceState.get("jarvis-readmeSummary") as string)
     : await getReadmeSummery(openai, targetDirectory);
