@@ -23,7 +23,11 @@ const setupSidebar = (
   const sidebarProvider = new SidebarProvider(context.extensionUri, openai, targetDirectory);
 
   context.subscriptions.push(
-    vscode.window.registerWebviewViewProvider("jarvis-sidebar", sidebarProvider),
+    vscode.window.registerWebviewViewProvider("jarvis-sidebar", sidebarProvider, {
+      webviewOptions: {
+        retainContextWhenHidden: true,
+      },
+    }),
   );
 
   return sidebarProvider;
