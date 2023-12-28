@@ -45,18 +45,18 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
               question: data.question,
             });
             this.postMessage({
-              type: "onAnswer",
-              value: {
+              payload: {
                 conversations,
               },
+              type: "onAnswer",
             });
           } catch (error) {
             jarvisLog(`error: ${(error as any).message}`);
             this.postMessage({
-              type: "onError",
-              value: {
+              payload: {
                 error: (error as any).message,
               },
+              type: "onError",
             });
           }
 
@@ -67,13 +67,13 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
             break;
           }
 
-          this._view?.webview.postMessage({
-            type: "onProjectSetup",
-            value: {
+          this.postMessage({
+            payload: {
               fileTree: this._fileTree,
               fileTreeSummary: this._fileTreeSummary,
               projectShortExplanation: this._projectShortExplanation,
             },
+            type: "onProjectSetup",
           });
         }
       }
