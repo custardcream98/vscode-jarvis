@@ -61,7 +61,12 @@ const setupProject = async (
 
   const projectShortExplanation = context.workspaceState.get("jarvis-projectShortExplanation")
     ? (context.workspaceState.get("jarvis-projectShortExplanation") as string)
-    : await getProjectShortExplanation(openai, readmeSummary, fileTreeSummary.join("\n"));
+    : await getProjectShortExplanation(
+        openai,
+        readmeSummary,
+        fileTreeSummary.join("\n"),
+        targetDirectory,
+      );
 
   await context.workspaceState.update("jarvis-projectShortExplanation", projectShortExplanation);
 

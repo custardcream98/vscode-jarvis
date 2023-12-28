@@ -39,15 +39,21 @@ export const getChatCompletionWithFunction = async <T>({
   prompt,
   tools,
   availableFunctions,
+  options,
 }: {
   openai: OpenAI;
   prompt: OpenAI.Chat.Completions.ChatCompletionMessageParam[];
   tools: OpenAI.ChatCompletionTool[];
   availableFunctions: Record<string, Function>;
+  options?: Omit<
+    OpenAI.ChatCompletionCreateParamsNonStreaming,
+    "messages" | "model" | "n" | "tools" | "tool_choice"
+  >;
 }): Promise<OpenAI.Chat.Completions.ChatCompletionMessageParam[]> => {
   jarvisLog(`trying to get chat function completion with prompt: ${JSON.stringify(prompt)}`);
 
   const completion = await openai.chat.completions.create({
+    ...options,
     messages: prompt,
     model: "gpt-4-1106-preview",
     n: 1,

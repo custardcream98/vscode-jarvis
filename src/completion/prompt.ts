@@ -116,7 +116,7 @@ export const getProjectShortExplanationPrompt = ({
   summarizedReadme,
 }: {
   summarizedFileTree: string;
-  summarizedReadme: string;
+  summarizedReadme?: string;
 }): OpenAI.Chat.Completions.ChatCompletionMessageParam[] => [
   {
     content: `You are a senior developer. Explain the project with the following data. Response in following JSON format. Explain in 1 sentence.
@@ -128,9 +128,13 @@ export const getProjectShortExplanationPrompt = ({
   
     Summarized File Tree:
     ${summarizedFileTree}
-    
+    ${
+      summarizedReadme
+        ? `
     Summarized Readme:
-    ${summarizedReadme}
+    ${summarizedReadme}`
+        : ""
+    }
     `,
     role: "system",
   },
