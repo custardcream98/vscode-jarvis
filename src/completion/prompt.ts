@@ -141,21 +141,16 @@ export const getProjectShortExplanationPrompt = ({
 ];
 
 export const getAnswerQuestionPrompt = ({
-  question,
   projectShortExplanation,
   fileTree,
 }: {
-  question: string;
   projectShortExplanation: string;
   fileTree: string;
 }): OpenAI.Chat.Completions.ChatCompletionMessageParam[] => [
   {
-    content: `You are a senior developer. Answer the following question with the following data. Response in following JSON format.
+    content: `You are a senior developer. Answer questions with the following data about a project. If you need more information, you can ask the user.
 
-    Response Format:
-    {
-      "answer": "Answer",
-    }
+    Response Format: Markdown
     
     Project Explanation:
     ${projectShortExplanation}
@@ -164,10 +159,6 @@ export const getAnswerQuestionPrompt = ({
     ${fileTree}
     `,
     role: "system",
-  },
-  {
-    content: "Question: " + question,
-    role: "user",
   },
 ];
 

@@ -5,7 +5,7 @@ import {
   VSCodeProgressRing,
   VSCodeTextArea,
 } from "@vscode/webview-ui-toolkit/react";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Markdown from "react-markdown";
 
 import { vscode } from "./utilities/vscode";
@@ -13,6 +13,9 @@ import { vscode } from "./utilities/vscode";
 import "./App.css";
 import "github-markdown-css/github-markdown.css";
 import style from "./App.module.css";
+import type OpenAI from "openai";
+
+type Conversation = OpenAI.Chat.Completions.ChatCompletionMessageParam;
 
 const updateVsCodeState = <T extends unknown | undefined>(reducer: (prevState: T) => T) => {
   const vscodeState = vscode.getState();
@@ -26,12 +29,7 @@ const App = () => {
     projectShortExplanation: string;
   } | null>(null);
 
-  const [conversations, setConversations] = useState<
-    {
-      question: string;
-      answer: string;
-    }[]
-  >(() => {
+  const [conversations, setConversations] = useState<Conversation[]>(() => {
     const vscodeState = vscode.getState();
     return (vscodeState as any)?.conversations ?? [];
   });
@@ -55,6 +53,7 @@ const App = () => {
   }, []);
 
   const [isAnsweringQuestion, setIsAnsweringQuestion] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   const chatFormRef = useRef<HTMLFormElement>(null);
   const questionFormSubmitHandler = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -65,23 +64,39 @@ const App = () => {
 
     vscode.postMessage({
       type: "onQuestion",
-      value: question,
+      question,
+      conversations,
     });
+    setErrorMessage("");
     setIsAnsweringQuestion(true);
   };
+
+  /** error handling */
+  useEffect(() => {
+    const errorEventHandler = (event: MessageEvent) => {
+      if (event.data.type === "onError") {
+        console.error(event.data.value.error);
+        setIsAnsweringQuestion(false);
+        setErrorMessage(event.data.value.error);
+      }
+    };
+
+    window.addEventListener("message", errorEventHandler);
+
+    return () => {
+      window.removeEventListener("message", errorEventHandler);
+    };
+  }, []);
 
   useEffect(() => {
     const answerEventHandler = (event: MessageEvent) => {
       if (event.data.type === "onAnswer") {
-        const newConversation = {
-          question: event.data.value.question,
-          answer: event.data.value.answer,
-        };
+        const conversations = event.data.value.conversations as Conversation[];
 
-        setConversations((conversations) => [...conversations, newConversation]);
+        setConversations(conversations);
         updateVsCodeState((prevState) => ({
           ...(prevState ?? {}),
-          conversations: [...((prevState as any)?.conversations ?? []), newConversation],
+          conversations: conversations,
         }));
         setIsAnsweringQuestion(false);
         chatFormRef.current?.reset();
@@ -149,16 +164,32 @@ const App = () => {
           <VSCodeDivider />
           <div className={style.chatWrapper}>
             <div className={style.chatList}>
-              {conversations.map((conversation, index) => (
-                <div key={index} className={style.chatListItem}>
-                  <div className={cn(style.userChat, style.chatBox)}>
-                    <Markdown className='markdown-body'>{conversation.question}</Markdown>
-                  </div>
-                  <div className={cn(style.botChat, style.chatBox)}>
-                    <Markdown className='markdown-body'>{conversation.answer}</Markdown>
-                  </div>
+              <div className={style.chatListItem}>
+                {conversations
+                  .filter((conversation) => ["assistant", "user"].includes(conversation.role))
+                  .map((conversation, index) =>
+                    conversation.role === "user" ? (
+                      <div key={index} className={cn(style.userChat, style.chatBox)}>
+                        <Markdown className='markdown-body'>
+                          {typeof conversation.content === "string"
+                            ? conversation.content
+                            : conversation.content.join("")}
+                        </Markdown>
+                      </div>
+                    ) : (
+                      <div key={index} className={cn(style.botChat, style.chatBox)}>
+                        <Markdown className='markdown-body'>{conversation.content}</Markdown>
+                      </div>
+                    ),
+                  )}
+              </div>
+              {isAnsweringQuestion && (
+                <div className={style.loadingWrapper}>
+                  <div>Jarvis is Thinking...</div>
+                  <VSCodeProgressRing />
                 </div>
-              ))}
+              )}
+              {!!errorMessage && <div className={style.errorMessage}>{errorMessage}</div>}
             </div>
             <form ref={chatFormRef} className={style.chatForm} onSubmit={questionFormSubmitHandler}>
               <VSCodeTextArea

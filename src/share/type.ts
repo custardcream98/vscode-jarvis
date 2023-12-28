@@ -7,9 +7,11 @@ export type AskToJarvis = (
     question,
     fileTree,
     projectShortExplanation,
+    conversations,
   }: {
     question: string;
     fileTree: string;
     projectShortExplanation: string;
+    conversations?: OpenAI.Chat.Completions.ChatCompletionMessageParam[];
   },
-) => Promise<string>;
+) => Promise<OpenAI.Chat.Completions.ChatCompletionMessageParam[]>;

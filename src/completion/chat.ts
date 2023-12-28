@@ -1,17 +1,19 @@
-import { getFileContent } from "../data/file";
+import { jarvisLog } from "../utils/log";
 
 import OpenAI from "openai";
-import path from "path";
 
 export const getChatCompletion = async <T>(
   openai: OpenAI,
   prompt: OpenAI.Chat.Completions.ChatCompletionMessageParam[],
   options?: OpenAI.ChatCompletionCreateParamsNonStreaming,
 ) => {
+  jarvisLog(`trying to get chat completion with prompt: ${JSON.stringify(prompt)}`);
+
   const chat = await openai.chat.completions.create({
     ...options,
     messages: prompt,
     model: "gpt-4-1106-preview",
+    n: 1,
     response_format: {
       type: "json_object",
     },
@@ -24,115 +26,82 @@ export const getChatCompletion = async <T>(
   }
 
   if (chat.choices[0].finish_reason === "length") {
-    console.warn("Completion was truncated due to length.");
+    jarvisLog("Completion was truncated due to length.");
   }
+
+  jarvisLog(`got chat completion: ${completion}`);
 
   return JSON.parse(completion) as T;
 };
 
-export const getChatCompletionWithFunction = async <T>(
-  openai: OpenAI,
-  prompt: OpenAI.Chat.Completions.ChatCompletionMessageParam[],
-  targetDirectory: string,
-) => {
-  const chat = await openai.chat.completions.create({
+export const getChatCompletionWithFunction = async <T>({
+  openai,
+  prompt,
+  tools,
+  availableFunctions,
+}: {
+  openai: OpenAI;
+  prompt: OpenAI.Chat.Completions.ChatCompletionMessageParam[];
+  tools: OpenAI.ChatCompletionTool[];
+  availableFunctions: Record<string, Function>;
+}): Promise<OpenAI.Chat.Completions.ChatCompletionMessageParam[]> => {
+  jarvisLog(`trying to get chat function completion with prompt: ${JSON.stringify(prompt)}`);
+
+  const completion = await openai.chat.completions.create({
     messages: prompt,
     model: "gpt-4-1106-preview",
-    response_format: {
-      type: "json_object",
-    },
+    n: 1,
     tool_choice: "auto",
-    tools: [
-      {
-        function: {
-          description: "Get the content of a file",
-          name: "getFileContent",
-          parameters: {
-            properties: {
-              filePath: {
-                description: "The path of the file to get the content of. Absolute path.",
-                type: "string",
-              },
-            },
-            required: ["filePath"],
-            type: "object",
-          },
-        },
-        type: "function",
-      },
-    ],
+    tools,
   });
 
-  const toolCalls = chat.choices[0].message.tool_calls ?? [];
+  const toolCalls = completion.choices[0].message.tool_calls ?? [];
 
   if (toolCalls.length !== 0) {
-    console.log("tool Called!", JSON.stringify(chat.choices[0].message));
+    jarvisLog(`calling tools: ${JSON.stringify(toolCalls)}`);
 
-    prompt.push(chat.choices[0].message);
+    const newPrompt: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
+      ...prompt,
+      completion.choices[0].message,
+      ...toolCalls.map((toolCall) => {
+        const functionName = toolCall.function.name;
+        const functionToCall =
+          functionName in availableFunctions ? availableFunctions[functionName] : null;
 
-    const availableFunctions: Record<string, Function> = {
-      getFileContent: (filePath: string) => {
-        if (filePath.startsWith(targetDirectory)) {
-          return getFileContent(filePath);
-        }
+        const functionArgs = JSON.parse(toolCall.function.arguments);
+        const functionResponse = functionToCall?.(functionArgs);
 
-        if (filePath.startsWith("./")) {
-          return getFileContent(path.resolve(targetDirectory, filePath));
-        }
+        const functionMessage: OpenAI.Chat.Completions.ChatCompletionMessageParam = {
+          content: functionResponse,
+          role: "tool",
+          tool_call_id: toolCall.id,
+        };
 
-        if (filePath.startsWith("/")) {
-          return getFileContent(path.resolve(targetDirectory, filePath.slice(1)));
-        }
+        return functionMessage;
+      }),
+    ];
 
-        return getFileContent(path.resolve(targetDirectory, filePath));
-      },
-    };
-
-    toolCalls.forEach((toolCall) => {
-      const functionName = toolCall.function.name;
-      const functionToCall =
-        functionName in availableFunctions ? availableFunctions[functionName] : null;
-
-      const functionArgs = JSON.parse(toolCall.function.arguments);
-      const functionResponse = functionToCall?.(functionArgs.filePath);
-
-      prompt.push({
-        content: functionResponse,
-        role: "tool",
-        tool_call_id: toolCall.id,
-      });
+    const recursiveCompletion = await getChatCompletionWithFunction({
+      availableFunctions,
+      openai,
+      prompt: newPrompt,
+      tools,
     });
 
-    const chatWithFunction = await openai.chat.completions.create({
-      messages: prompt,
-      model: "gpt-4-1106-preview",
-      response_format: {
-        type: "json_object",
-      },
-    });
-
-    const completion = chatWithFunction.choices[0].message.content;
-
-    if (!completion) {
-      throw new Error("No completion, Prompt was: " + prompt);
-    }
-
-    if (chat.choices[0].finish_reason === "length") {
-      console.warn("Completion was truncated due to length.");
-    }
-
-    return JSON.parse(completion) as T;
+    return recursiveCompletion;
   }
 
-  const completion = chat.choices[0].message.content;
+  const answerMessage = completion.choices[0].message;
 
-  if (!completion) {
+  if (!answerMessage) {
     throw new Error("No completion, Prompt was: " + prompt);
   }
 
-  if (chat.choices[0].finish_reason === "length") {
-    console.warn("Completion was truncated due to length.");
+  if (completion.choices[0].finish_reason !== "stop") {
+    jarvisLog(`Completion was truncated due to ${completion.choices[0].finish_reason}.`);
   }
 
-  return JSON.parse(completion) as T;
+  jarvisLog(`got chat function completion: ${JSON.stringify(answerMessage)}`);
+
+  return [...prompt, answerMessage];
 };

@@ -1,4 +1,5 @@
 import { askToJarvis } from "../completion/completion";
+import { jarvisLog } from "../utils/log";
 
 import type OpenAI from "openai";
 import * as vscode from "vscode";
@@ -36,24 +37,28 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     webviewView.webview.onDidReceiveMessage(async (data) => {
       switch (data.type) {
         case "onQuestion": {
-          if (!data.value || typeof data.value !== "string") {
-            vscode.window.showErrorMessage("Jarvis: Invalid question");
-            return;
+          try {
+            const conversations = await askToJarvis(this._openai, this._targetDirectory, {
+              conversations: data.conversations,
+              fileTree: this._fileTree,
+              projectShortExplanation: this._projectShortExplanation,
+              question: data.question,
+            });
+            this.postMessage({
+              type: "onAnswer",
+              value: {
+                conversations,
+              },
+            });
+          } catch (error) {
+            jarvisLog(`error: ${(error as any).message}`);
+            this.postMessage({
+              type: "onError",
+              value: {
+                error: (error as any).message,
+              },
+            });
           }
-
-          const answer = await askToJarvis(this._openai, this._targetDirectory, {
-            fileTree: this._fileTree,
-            projectShortExplanation: this._projectShortExplanation,
-            question: data.value,
-          });
-
-          this.postMessage({
-            type: "onAnswer",
-            value: {
-              answer,
-              question: data.value,
-            },
-          });
 
           break;
         }

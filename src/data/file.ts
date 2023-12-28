@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 
-export const getFileContent = (filePath: string) => {
+export const getFileContent = ({ filePath }: { filePath: string }) => {
   try {
     const fileContent = fs.readFileSync(filePath, "utf8");
 
@@ -12,7 +12,7 @@ export const getFileContent = (filePath: string) => {
 };
 
 export const getFilesToIgnore = (targetDirectory: string) => {
-  const gitignore = getFileContent(path.resolve(targetDirectory, "./.gitignore"));
+  const gitignore = getFileContent({ filePath: path.resolve(targetDirectory, "./.gitignore") });
 
   const filesToIgnore = gitignore.split("\n");
 

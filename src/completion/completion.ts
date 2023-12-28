@@ -13,7 +13,7 @@ import type OpenAI from "openai";
 import path from "path";
 
 export const getReadmeSummery = async (openai: OpenAI, targetDirectory: string) => {
-  const readme = getFileContent(path.resolve(targetDirectory, "./README.md"));
+  const readme = getFileContent({ filePath: path.resolve(targetDirectory, "./README.md") });
 
   if (!readme) {
     return "";
@@ -62,17 +62,66 @@ export const getProjectShortExplanation = async (
 export const askToJarvis: AskToJarvis = async (
   openai,
   targetDirectory,
-  { question, fileTree, projectShortExplanation },
+  { question, fileTree, projectShortExplanation, conversations = [] },
 ) => {
-  const questionPrompt = getAnswerQuestionPrompt({
-    fileTree,
-    projectShortExplanation,
-    question,
+  const isPreviousConversation = conversations.length > 0;
+  const prevConversations = isPreviousConversation
+    ? conversations
+    : getAnswerQuestionPrompt({
+        fileTree,
+        projectShortExplanation,
+      });
+
+  const newConversations: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
+    ...prevConversations,
+    {
+      content: question,
+      role: "user",
+    },
+  ];
+
+  const answeredConversations = await getChatCompletionWithFunction<{
+    answer: string;
+  }>({
+    availableFunctions: {
+      getFileContent: ({ filePath }: { filePath: string }) => {
+        if (filePath.startsWith(targetDirectory)) {
+          return getFileContent({ filePath });
+        }
+
+        if (filePath.startsWith("./")) {
+          return getFileContent({ filePath: path.resolve(targetDirectory, filePath) });
+        }
+
+        if (filePath.startsWith("/")) {
+          return getFileContent({ filePath: path.resolve(targetDirectory, filePath.slice(1)) });
+        }
+
+        return getFileContent({ filePath: path.resolve(targetDirectory, filePath) });
+      },
+    },
+    openai,
+    prompt: newConversations,
+    tools: [
+      {
+        function: {
+          description: "Get the content of a file",
+          name: "getFileContent",
+          parameters: {
+            properties: {
+              filePath: {
+                description: "The path of the file to get the content of. Absolute path.",
+                type: "string",
+              },
+            },
+            required: ["filePath"],
+            type: "object",
+          },
+        },
+        type: "function",
+      },
+    ],
   });
 
-  const { answer } = await getChatCompletionWithFunction<{
-    answer: string;
-  }>(openai, questionPrompt, targetDirectory);
-
-  return answer;
+  return answeredConversations;
 };
