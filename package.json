@@ -6,6 +6,7 @@
   "engines": {
     "vscode": "^1.85.0"
   },
+  "icon": "assets/jarvis-logo.png",
   "categories": [
     "Other"
   ],
@@ -23,7 +24,7 @@
         {
           "id": "jarvis-sidebar-view",
           "title": "Jarvis",
-          "icon": "media/icon.svg"
+          "icon": "assets/jarvis-logo.svg"
         }
       ]
     },
@@ -33,7 +34,7 @@
           "type": "webview",
           "id": "jarvis-sidebar",
           "name": "Jarvis",
-          "icon": "media/icon.svg"
+          "icon": "assets/jarvis-logo.svg"
         }
       ]
     },
