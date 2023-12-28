@@ -213,7 +213,10 @@ const App = () => {
             <div className={style.chatList}>
               <div className={style.chatListItem}>
                 {conversations
-                  .filter((conversation) => ["assistant", "user"].includes(conversation.role))
+                  .filter(
+                    (conversation) =>
+                      ["assistant", "user"].includes(conversation.role) && !!conversation.content,
+                  )
                   .map((conversation, index) =>
                     conversation.role === "user" ? (
                       <div key={index} className={cn(style.userChat, style.chatBox)}>
