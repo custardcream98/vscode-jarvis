@@ -25,7 +25,16 @@
 
 ### Beta 사용해보기
 
+> Jarvis는 루트 디렉토리의 `.gitignore`를 인식해 해당 파일들을 제외하고 분석합니다. 안심하세요!
+
 1. [이곳](./jarvis-0.0.1.vsix)에서 `jarvis-0.0.1.vsix` 파일을 다운로드 받습니다.
 2. VSCode에서 `jarvis-0.0.1.vsix` 파일을 설치합니다. 아무 워크스페이스에 이 파일을 놓고, 우클릭 후 `Install Extension VSIX`를 클릭하면 됩니다.
 3. VSCode settings에서 `Jarvis: Open_AI_Api_Key`를 검색하고, 자신의 Open AI API Key를 입력합니다.
 4. 원하는 워크스페이스를 엽니다. Jarvis가 실행되지 않는다면 `Ctrl(cmd) + Shift + P`를 눌러 `Restart Jarvis`를 입력합니다.
+
+<br />
+<br />
+
+### 실제 사용 예시 확인해보기
+
+<img align="center" alt="real world use case" src="./readme/real-world-use.png" width="100%" />
