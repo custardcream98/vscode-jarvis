@@ -134,13 +134,13 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     this._projectShortExplanation = projectShortExplanation;
 
     this._isInitialized = true;
-    this._view?.webview.postMessage({
-      type: "onProjectSetup",
-      value: {
+    this.postMessage({
+      payload: {
         fileTree,
         fileTreeSummary,
         projectShortExplanation,
       },
+      type: "onProjectSetup",
     });
   };
 }
