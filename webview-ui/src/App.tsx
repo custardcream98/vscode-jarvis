@@ -21,6 +21,9 @@ import style from "./App.module.css";
 // const isDev = true;
 
 type Conversation = OpenAI.Chat.Completions.ChatCompletionMessageParam;
+type VSCodeState = {
+  conversations: Conversation[];
+};
 
 const updateVsCodeState = <T extends unknown | undefined>(reducer: (prevState: T) => T) => {
   const vscodeState = vscode.getState();
@@ -32,7 +35,7 @@ const App = () => {
 
   const [conversations, setConversations] = useState<Conversation[]>(() => {
     const vscodeState = vscode.getState();
-    return (vscodeState as any)?.conversations ?? [];
+    return (vscodeState as VSCodeState)?.conversations ?? [];
   });
 
   useMessageEvent("onProjectSetup", (payload) => {
@@ -71,8 +74,7 @@ const App = () => {
 
   useMessageEvent("onAnswer", ({ conversations }) => {
     setConversations(conversations);
-    updateVsCodeState((prevState) => ({
-      ...(prevState ?? {}),
+    updateVsCodeState<VSCodeState>(() => ({
       conversations: conversations,
     }));
     setIsAnsweringQuestion(false);
@@ -80,53 +82,52 @@ const App = () => {
   });
 
   const resetChatLogHandler = () => {
-    updateVsCodeState((prevState) => ({
-      ...(prevState ?? {}),
+    updateVsCodeState<VSCodeState>(() => ({
       conversations: [],
     }));
     setConversations([]);
   };
 
-  const [devConversations, setDevConversations] = useState<
-    {
-      role: "user" | "assistant";
-      content: string;
-    }[]
-  >(
-    new Array(10)
-      .fill([
-        { role: "user", content: "This is a test question." },
-        { role: "assistant", content: "This is a test answer." },
-      ])
-      .flat(),
-  );
-  const devQuestionFormSubmitHandler = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  // const [devConversations, setDevConversations] = useState<
+  //   {
+  //     role: "user" | "assistant";
+  //     content: string;
+  //   }[]
+  // >(
+  //   new Array(10)
+  //     .fill([
+  //       { role: "user", content: "This is a test question." },
+  //       { role: "assistant", content: "This is a test answer." },
+  //     ])
+  //     .flat(),
+  // );
+  // const devQuestionFormSubmitHandler = (event: React.FormEvent<HTMLFormElement>) => {
+  //   event.preventDefault();
 
-    const formData = new FormData(event.currentTarget);
+  //   const formData = new FormData(event.currentTarget);
 
-    const question = formData.get("question") as string;
+  //   const question = formData.get("question") as string;
 
-    setDevConversations((prevConversations) => [
-      ...prevConversations,
-      {
-        role: "user",
-        content: question,
-      },
-    ]);
-    setIsAnsweringQuestion(true);
+  //   setDevConversations((prevConversations) => [
+  //     ...prevConversations,
+  //     {
+  //       role: "user",
+  //       content: question,
+  //     },
+  //   ]);
+  //   setIsAnsweringQuestion(true);
 
-    setTimeout(() => {
-      setDevConversations((prevConversations) => [
-        ...prevConversations,
-        {
-          role: "assistant",
-          content: "This is a test answer.",
-        },
-      ]);
-      setIsAnsweringQuestion(false);
-    }, 1000);
-  };
+  //   setTimeout(() => {
+  //     setDevConversations((prevConversations) => [
+  //       ...prevConversations,
+  //       {
+  //         role: "assistant",
+  //         content: "This is a test answer.",
+  //       },
+  //     ]);
+  //     setIsAnsweringQuestion(false);
+  //   }, 1000);
+  // };
 
   // if (isDev) {
   //   return (
