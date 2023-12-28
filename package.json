@@ -63,6 +63,7 @@
     }
   },
   "scripts": {
+    "install:all": "pnpm install && cd ./webview-ui && pnpm install",
     "start:webview": "cd webview-ui && npm run start",
     "build:webview": "cd webview-ui && npm run build",
     "vscode:prepublish": "pnpm run compile",
