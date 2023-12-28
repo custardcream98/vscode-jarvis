@@ -38,3 +38,10 @@
 ### 실제 사용 예시 확인해보기
 
 <img align="center" alt="real world use case" src="./readme/real-world-use.png" width="100%" />
+
+<br />
+<br />
+
+### 번외
+
+<img align="center" alt="addition" src="./readme/addition.png" width="100%" />
