@@ -4,12 +4,13 @@ import {
   getProjectShortExplanation,
   getReadmeSummery,
 } from "./completion/completion";
-import { getFilesToIgnore } from "./data/file";
-import { getProjectFileTree } from "./data/fileTree";
+import { getFileContent } from "./data/file";
 import { getProjectFileTree, parseGitIgnore } from "./data/fileTree";
+import { jarvisLog } from "./utils/log";
 import { SidebarProvider } from "./view/sidebar";
 
 import OpenAI from "openai";
+import path from "path";
 import * as vscode from "vscode";
 
 // const isDev = true;
@@ -54,36 +55,73 @@ const setupProject = async (
   //     readmeSummary: "",
   //   };
   // }
+  jarvisLog(`
+======== JARVIS SETUP INFO =========
+initializing jarvis...
+====================================
+`);
 
-  const readmeSummary = context.workspaceState.get("jarvis-readmeSummary")
-    ? (context.workspaceState.get("jarvis-readmeSummary") as string)
-    : await getReadmeSummery(openai, targetDirectory);
+  const storedReadme = context.workspaceState.get<string>("jarvis-readme");
+  const currentReadme = getFileContent({ filePath: path.resolve(targetDirectory, "./README.md") });
+  const isReadmeChanged = storedReadme !== currentReadme;
+  await context.workspaceState.update("jarvis-readme", currentReadme);
+
+  isReadmeChanged &&
+    jarvisLog(`
+======== JARVIS SETUP INFO =========
+readme changed. re-analyzing workspace.
+====================================
+`);
+
+  const readmeSummary =
+    context.workspaceState.get("jarvis-readmeSummary") && !isReadmeChanged
+      ? (context.workspaceState.get("jarvis-readmeSummary") as string)
+      : await getReadmeSummery(openai, targetDirectory);
 
   await context.workspaceState.update("jarvis-readmeSummary", readmeSummary);
 
-  const filesToIgnore = getFilesToIgnore(targetDirectory);
   const filesToIgnore = parseGitIgnore(targetDirectory);
 
-  const fileTree = context.workspaceState.get("jarvis-fileTree")
-    ? (context.workspaceState.get("jarvis-fileTree") as string)
-    : getProjectFileTree(targetDirectory, filesToIgnore);
+  const fileTree = getProjectFileTree(targetDirectory, filesToIgnore);
 
+  jarvisLog(`
+======== JARVIS SETUP INFO =========
+filesToIgnore:
+${JSON.stringify(filesToIgnore)}
+
+parsed fileTree:
+${fileTree}
+====================================
+`);
+
+  const prevFileTree = context.workspaceState.get("jarvis-fileTree");
+  const isFileTreeChanged = prevFileTree !== fileTree;
   await context.workspaceState.update("jarvis-fileTree", fileTree);
 
-  const fileTreeSummary = context.workspaceState.get("jarvis-fileTreeSummary")
-    ? (context.workspaceState.get("jarvis-fileTreeSummary") as string[])
-    : await getFileTreeSummary(openai, fileTree);
+  isFileTreeChanged &&
+    jarvisLog(`
+======== JARVIS SETUP INFO =========
+file tree changed. re-analyzing workspace.
+====================================
+`);
+  const shouldReanalyze = isFileTreeChanged || isReadmeChanged;
+
+  const fileTreeSummary =
+    context.workspaceState.get("jarvis-fileTreeSummary") && !shouldReanalyze
+      ? (context.workspaceState.get("jarvis-fileTreeSummary") as string[])
+      : await getFileTreeSummary(openai, fileTree);
 
   await context.workspaceState.update("jarvis-fileTreeSummary", fileTreeSummary);
 
-  const projectShortExplanation = context.workspaceState.get("jarvis-projectShortExplanation")
-    ? (context.workspaceState.get("jarvis-projectShortExplanation") as string)
-    : await getProjectShortExplanation(
-        openai,
-        readmeSummary,
-        fileTreeSummary.join("\n"),
-        targetDirectory,
-      );
+  const projectShortExplanation =
+    context.workspaceState.get("jarvis-projectShortExplanation") && !shouldReanalyze
+      ? (context.workspaceState.get("jarvis-projectShortExplanation") as string)
+      : await getProjectShortExplanation(
+          openai,
+          readmeSummary,
+          fileTreeSummary.join("\n"),
+          targetDirectory,
+        );
 
   await context.workspaceState.update("jarvis-projectShortExplanation", projectShortExplanation);
 
