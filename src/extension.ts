@@ -6,6 +6,7 @@ import {
 } from "./completion/completion";
 import { getFilesToIgnore } from "./data/file";
 import { getProjectFileTree } from "./data/fileTree";
+import { getProjectFileTree, parseGitIgnore } from "./data/fileTree";
 import { SidebarProvider } from "./view/sidebar";
 
 import OpenAI from "openai";
@@ -61,6 +62,7 @@ const setupProject = async (
   await context.workspaceState.update("jarvis-readmeSummary", readmeSummary);
 
   const filesToIgnore = getFilesToIgnore(targetDirectory);
+  const filesToIgnore = parseGitIgnore(targetDirectory);
 
   const fileTree = context.workspaceState.get("jarvis-fileTree")
     ? (context.workspaceState.get("jarvis-fileTree") as string)
