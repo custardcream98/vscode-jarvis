@@ -55,6 +55,10 @@ export const getFileTreeSummeryPrompt = ({
     `,
     role: "system",
   },
+  {
+    content: "File Directories:",
+    role: "user",
+  },
 ];
 
 export const getProjectShortExplanationPrompt = ({
@@ -78,6 +82,10 @@ export const getProjectShortExplanationPrompt = ({
     }
     `,
     role: "system",
+  },
+  {
+    content: "Explanation:",
+    role: "user",
   },
 ];
 
