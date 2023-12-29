@@ -40,16 +40,12 @@
     },
     "commands": [
       {
-        "command": "jarvis.restartServer",
+        "command": "jarvis.restartJarvis",
         "title": "Restart Jarvis"
       },
       {
-        "command": "jarvis.askToJarvis",
-        "title": "Ask Jarvis About Project"
-      },
-      {
         "command": "jarvis.resetJarvis",
-        "title": "Reset Jarvis on Current Project"
+        "title": "Reset Jarvis on Current Project (This will make Jarvis to analyze your project again)"
       }
     ],
     "configuration": {

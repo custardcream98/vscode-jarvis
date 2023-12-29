@@ -150,14 +150,12 @@ const setupJarvis = (
     {
       cancellable: false,
       location: vscode.ProgressLocation.Notification,
-      title: "Jarvis: Setting up",
+      title: "Jarvis: ",
     },
     async (progress) => {
-      progress.report({ increment: 0 });
-
       progress.report({
         increment: 10,
-        message: "Jarvis: Reading Project...",
+        message: "Reading Project...",
       });
 
       const { fileTree, fileTreeSummary, projectShortExplanation } = await setupProject(
@@ -166,49 +164,19 @@ const setupJarvis = (
         TARGET_DIRECTORY,
       );
 
-      vscode.window.showInformationMessage(
-        "Jarvis: Jarvis is Ready To Answer Questions.\n\nAsk a question by pressing Ctrl+Shift+P and typing 'Jarvis: Ask a Question'\n\n" +
-          projectShortExplanation,
-      );
-
       sidebarProvider.setupProject({
         fileTree,
         fileTreeSummary,
         projectShortExplanation,
       });
 
-      progress.report({ increment: 100 });
-
-      let askToJarvisCommand = vscode.commands.registerCommand(
-        EXTENSION_NAME + ".askToJarvis",
-        async () => {
-          const question = await vscode.window.showInputBox({
-            ignoreFocusOut: true,
-            placeHolder: "What is the purpose of this project?",
-            prompt: "Ask a Question",
-          });
-
-          if (!question) {
-            return;
-          }
-
-          const answer = await askToJarvis(openai, TARGET_DIRECTORY, {
-            fileTree,
-            projectShortExplanation,
-            question,
-          });
-
-          vscode.window.showInformationMessage("Jarvis: " + answer);
-        },
-      );
-
-      context.subscriptions.push(askToJarvisCommand);
+      progress.report({ increment: 100, message: "Ready To Answer Questions." });
     },
   );
 };
 
 export async function activate(context: vscode.ExtensionContext) {
-  const restartServer = vscode.commands.registerCommand(EXTENSION_NAME + ".restartServer", () => {
+  const restartServer = vscode.commands.registerCommand(EXTENSION_NAME + ".restartJarvis", () => {
     vscode.commands.executeCommand("workbench.action.reloadWindow");
   });
 
