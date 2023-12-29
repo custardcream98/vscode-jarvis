@@ -72,8 +72,8 @@
             "gpt-3.5-turbo-1106",
             "gpt-3.5-turbo-16k-0613"
           ],
-          "description": "The model to use for OpenAI API. The default is gpt-3.5-turbo. However, gpt-4-1106-preview is recommended for the best experience.",
-          "default": "gpt-3.5-turbo"
+          "description": "For the optimal experience, it is recommended to use `gpt-4-1106-preview`, but please be mindful of the associated costs.",
+          "default": "gpt-4-1106-preview"
         }
       }
     }
