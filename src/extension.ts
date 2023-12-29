@@ -192,9 +192,11 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(restartServer);
   context.subscriptions.push(resetJarvis);
 
-  const openAiApiKey = vscode.workspace.getConfiguration(EXTENSION_NAME).get("Open_AI_Api_Key");
+  const projectConfig = vscode.workspace.getConfiguration(EXTENSION_NAME);
 
-  if (!openAiApiKey || typeof openAiApiKey !== "string") {
+  const openAiApiKey = projectConfig.get<string>("apiKeyForOpenAI");
+
+  if (!openAiApiKey) {
     vscode.window.showErrorMessage("Jarvis: OpenAI API Key is not set. Please set it in settings.");
 
     return;

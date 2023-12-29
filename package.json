@@ -51,10 +51,29 @@
     "configuration": {
       "title": "Jarvis",
       "properties": {
-        "jarvis.Open_AI_Api_Key": {
+        "jarvis.apiKeyForOpenAI": {
           "type": "string",
           "default": "",
-          "description": "OpenAI API Key"
+          "description": "Used by Jarvis to access OpenAI API."
+        },
+        "jarvis.model": {
+          "enum": [
+            "gpt-4-1106-preview",
+            "gpt-4",
+            "gpt-4-0314",
+            "gpt-4-0613",
+            "gpt-4-32k",
+            "gpt-4-32k-0314",
+            "gpt-4-32k-0613",
+            "gpt-3.5-turbo",
+            "gpt-3.5-turbo-16k",
+            "gpt-3.5-turbo-0301",
+            "gpt-3.5-turbo-0613",
+            "gpt-3.5-turbo-1106",
+            "gpt-3.5-turbo-16k-0613"
+          ],
+          "description": "The model to use for OpenAI API. The default is gpt-3.5-turbo. However, gpt-4-1106-preview is recommended for the best experience.",
+          "default": "gpt-3.5-turbo"
         }
       }
     }

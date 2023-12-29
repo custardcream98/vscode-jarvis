@@ -1,6 +1,17 @@
 import { jarvisLog } from "../utils/log";
 
 import OpenAI from "openai";
+import * as vscode from "vscode";
+
+const getGptModelConfig = () => {
+  const model = vscode.workspace.getConfiguration("jarvis").get<string>("model");
+
+  if (!model) {
+    return "gpt-3.5-turbo";
+  }
+
+  return model;
+};
 
 export const getChatCompletion = async <T>(
   openai: OpenAI,
@@ -12,7 +23,7 @@ export const getChatCompletion = async <T>(
   const chat = await openai.chat.completions.create({
     ...options,
     messages: prompt,
-    model: "gpt-4-1106-preview",
+    model: getGptModelConfig(),
     n: 1,
     response_format: {
       type: "json_object",
@@ -55,7 +66,7 @@ export const getChatCompletionWithFunction = async <T>({
   const completion = await openai.chat.completions.create({
     ...options,
     messages: prompt,
-    model: "gpt-4-1106-preview",
+    model: getGptModelConfig(),
     n: 1,
     tool_choice: "auto",
     tools,
