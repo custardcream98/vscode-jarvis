@@ -1,3 +1,7 @@
+.loadingWrapperMarginTop {
+  margin-top: 10px;
+}
+
 .projectShortExplanationWrapper {
   position: sticky;
   top: 0;

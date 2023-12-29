@@ -234,7 +234,7 @@ const App = () => {
                   )}
               </div>
               {isAnsweringQuestion && (
-                <div className={style.loadingWrapper}>
+                <div className={cn(style.loadingWrapper, style.loadingWrapperMarginTop)}>
                   <div>Jarvis is Thinking...</div>
                   <VSCodeProgressRing />
                 </div>
