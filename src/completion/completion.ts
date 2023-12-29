@@ -32,21 +32,31 @@ const TOOLS: OpenAI.ChatCompletionTool[] = [
   },
 ];
 
+const resolveFilePath = ({
+  targetDirectory,
+  filePath,
+}: {
+  targetDirectory: string;
+  filePath: string;
+}) => {
+  if (filePath.startsWith(targetDirectory)) {
+    return filePath;
+  }
+
+  if (filePath.startsWith("./")) {
+    return path.resolve(targetDirectory, filePath);
+  }
+
+  if (filePath.startsWith("/")) {
+    return path.resolve(targetDirectory, filePath.slice(1));
+  }
+
+  return path.resolve(targetDirectory, filePath);
+};
+
 const getAvailableFunctions = (targetDirectory: string) => ({
   getFileContent: ({ filePath }: { filePath: string }) => {
-    if (filePath.startsWith(targetDirectory)) {
-      return getFileContent({ filePath });
-    }
-
-    if (filePath.startsWith("./")) {
-      return getFileContent({ filePath: path.resolve(targetDirectory, filePath) });
-    }
-
-    if (filePath.startsWith("/")) {
-      return getFileContent({ filePath: path.resolve(targetDirectory, filePath.slice(1)) });
-    }
-
-    return getFileContent({ filePath: path.resolve(targetDirectory, filePath) });
+    return getFileContent({ filePath: resolveFilePath({ filePath, targetDirectory }) });
   },
 });
 
